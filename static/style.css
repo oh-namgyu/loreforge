@@ -123,6 +123,20 @@ body {
   color: var(--accent-ink);
 }
 
+.input {
+  display: block;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.input:focus { border-color: var(--accent); outline: none; }
+
 .empty {
   margin: 8px 0 0;
   color: var(--muted);

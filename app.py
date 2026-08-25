@@ -8,6 +8,7 @@ from typing import Optional
 
 from flask import Flask, Response, send_from_directory
 
+from core import auth
 from core.api import api_bp, register_errors
 from core.llm import AnthropicText
 from core.storage import Storage
@@ -29,7 +30,9 @@ def resolve_data_dir(data_dir: Optional[str | os.PathLike[str]] = None) -> Path:
 
 
 def create_app(
-    data_dir: Optional[str | os.PathLike[str]] = None, llm: Optional[object] = None
+    data_dir: Optional[str | os.PathLike[str]] = None,
+    llm: Optional[object] = None,
+    token: Optional[str] = None,
 ) -> Flask:
     app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="/static")
     storage = Storage(resolve_data_dir(data_dir))
@@ -38,6 +41,7 @@ def create_app(
     app.config["LLM"] = llm if llm is not None else AnthropicText()
     app.register_blueprint(api_bp)
     register_errors(app)
+    auth.install(app, token if token is not None else os.environ.get("AUTH_TOKEN"))
 
     @app.get("/")
     def index() -> Response:
@@ -56,8 +60,7 @@ def create_app(
 def main() -> None:
     host = os.environ.get("HOST", DEFAULT_HOST)
     port = int(os.environ.get("PORT", DEFAULT_PORT))
-    if host not in ("127.0.0.1", "localhost", "::1"):
-        print(f"[warn] binding {host}: traffic is plain HTTP — put a TLS proxy in front")
+    auth.check_bind(host, os.environ.get("AUTH_TOKEN"))
     create_app().run(host=host, port=port, threaded=True)
 
 
