@@ -7,7 +7,7 @@ import pytest
 from app import create_app
 from core import auth
 
-TOKEN = "test-dummy-auth-token"  # not a real credential; fixture value only
+TOKEN = "example-auth-token-0000"  # placeholder fixture value, not a real credential
 
 
 @pytest.fixture()
