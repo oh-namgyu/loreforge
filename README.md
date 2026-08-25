@@ -37,11 +37,14 @@ for an image of a bible you have not read yet.
 
 ## Screenshots
 
-<!-- Add images to assets/ and reference them here. -->
+**Home** — one concept in, a palette-forward grid of books out.
 
-| Home — book grid & new-book form | Book detail — bible sections, palette, board |
-|----------------------------------|----------------------------------------------|
-| _`assets/home.png`_              | _`assets/detail.png`_                        |
+![loreforge home: the new-book panel above a grid of book cards, each topped by its own colour palette](docs/home.png)
+
+**Book detail** — sticky section nav, profile as a definition grid, large palette
+tiles, the master prompt as a copyable code panel.
+
+![loreforge book detail: numbered sections with a sticky left nav](docs/detail.png)
 
 ## Quickstart
 

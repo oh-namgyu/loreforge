@@ -4,26 +4,29 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>loreforge</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header class="topbar">
-    <h1 class="brand">loreforge</h1>
-    <span class="tagline">character &amp; world bible studio</span>
+    <h1 class="brand"><a class="brand-link" href="#/">lore<span class="brand-em">forge</span></a></h1>
+    <p class="tagline">character &amp; world bible studio</p>
   </header>
 
   <main class="wrap">
     <div class="notice hidden" id="notice"></div>
 
     <div id="view-home">
-    <section class="panel">
+    <section class="panel panel-forge">
       <div class="panel-head">
         <h2 class="panel-title">New Book</h2>
+        <span class="hint">One concept in, a whole bible out.</span>
       </div>
       <form id="new-book-form">
         <label class="label" for="f-concept">Concept</label>
-        <textarea class="input" id="f-concept" rows="3" maxlength="4000" required
+        <textarea class="input input-hero" id="f-concept" rows="3" maxlength="4000" required
                   placeholder="one line about the character or world"></textarea>
+        <p class="helper">A name, a place, a job, a mood — one line is enough to start the fire.</p>
         <div class="form-row">
           <div class="field">
             <label class="label" for="f-style">Art style</label>
@@ -57,7 +60,7 @@
         <span class="badge" id="book-count">0</span>
       </div>
       <div class="grid" id="book-grid"></div>
-      <p class="empty" id="book-empty">No books yet.</p>
+      <p class="empty" id="book-empty">No books yet — give the forge a concept.</p>
     </section>
     </div>
 
@@ -65,14 +68,14 @@
       <div class="actionbar">
         <a class="btn" href="#/" id="detail-back-link">&larr; Books</a>
         <h2 class="detail-title" id="detail-title"></h2>
-        <span class="badge" id="detail-status">empty</span>
+        <span class="pill" id="detail-status">empty</span>
         <span class="spacer"></span>
         <button class="btn btn-primary" type="button" id="detail-generate">Generate</button>
         <button class="btn" type="button" id="detail-render" disabled>Render Board</button>
         <button class="btn" type="button" id="detail-export" disabled
                 title="Download a standalone HTML lorebook">Export</button>
       </div>
-      <div class="actionbar">
+      <div class="actionbar actionbar-sub">
         <span class="field-label">Render</span>
         <label class="check" for="kind-board">
           <input type="checkbox" id="kind-board" checked> board
@@ -80,6 +83,7 @@
         <label class="check" for="kind-solo">
           <input type="checkbox" id="kind-solo"> solo
         </label>
+        <span class="spacer"></span>
         <span class="form-note" id="render-cost">Uses your image-API credits (&asymp;1 call per image)</span>
       </div>
       <div class="split">
@@ -90,6 +94,7 @@
   </main>
 
   <script src="/static/app.js"></script>
+  <script src="/static/nav.js"></script>
   <script src="/static/gallery.js"></script>
   <script src="/static/detail.js"></script>
 </body>

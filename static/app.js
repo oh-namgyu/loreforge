@@ -8,6 +8,7 @@ const LF = (window.LF = {});
 
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
 const BOOK_ROUTE = /^#\/book\/([a-z0-9-]{1,64})$/;
+const STATUS_RE = /^(empty|draft|rendered)$/;
 const NO_KEY_MESSAGE =
   "Set ANTHROPIC_API_KEY on the server to generate bibles. " +
   "The book is saved — browsing and editing keep working without a key.";
@@ -63,12 +64,33 @@ function paintSwatch(node, hex) {
   return node;
 }
 
-function swatchStrip(palette) {
-  const strip = el("div", "swatch-strip");
+/* A palette band: the four colours edge to edge along the card. */
+function paletteBand(palette) {
+  const band = el("div", "card-band");
   (palette || []).forEach((color) =>
-    strip.appendChild(paintSwatch(el("span", "swatch"), color && color.hex))
+    band.appendChild(paintSwatch(el("span", "swatch"), color && color.hex))
   );
-  return strip;
+  return band;
+}
+
+/* Perceived luminance decides whether text laid over a swatch is light or dark.
+   Falls back to the dark-swatch treatment for anything not a valid hex. */
+function inkClass(hex) {
+  if (!HEX_RE.test(hex || "")) return "on-dark";
+  const value = parseInt(hex.slice(1), 16);
+  const luminance =
+    (0.299 * ((value >> 16) & 255) + 0.587 * ((value >> 8) & 255) + 0.114 * (value & 255)) / 255;
+  return luminance > 0.6 ? "on-light" : "on-dark";
+}
+
+/* status also drives a colour, so it is whitelisted before it reaches a class */
+function statusClass(status) {
+  const value = String(status || "empty");
+  return "pill pill-" + (STATUS_RE.test(value) ? value : "empty");
+}
+
+function statusPill(status) {
+  return el("span", statusClass(status), String(status || "empty"));
 }
 
 function clearNotice() {
@@ -96,6 +118,9 @@ Object.assign(LF, {
   el: el,
   button: button,
   paintSwatch: paintSwatch,
+  inkClass: inkClass,
+  statusPill: statusPill,
+  statusClass: statusClass,
   showNotice: showNotice,
   clearNotice: clearNotice,
   generate: (slug) => request("POST", "/api/books/" + slug + "/generate"),
@@ -128,18 +153,21 @@ function askDelete(card, actions, slug) {
 function bookCard(book) {
   const card = el("article", "card");
   card.dataset.slug = book.slug;
+  // always present, so a book with no bible yet still lines up with the rest
+  card.appendChild(paletteBand(book.palette));
+  const body = el("div", "card-body");
   const title = el("h3", "card-title");
   const link = el("a", "link", book.name || "(untitled)");
   link.href = "#/book/" + book.slug;
   title.appendChild(link);
-  card.appendChild(title);
-  card.appendChild(el("p", "card-text", snippet(book.concept)));
+  body.appendChild(title);
+  body.appendChild(el("p", "card-text", snippet(book.concept)));
   const meta = el("div", "card-meta");
-  meta.appendChild(el("span", "badge", book.status || "empty"));
+  meta.appendChild(statusPill(book.status));
   if (book.board_count) meta.appendChild(el("span", "badge badge-shot", "🖼 " + book.board_count));
   if (book.recovered) meta.appendChild(el("span", "badge badge-warn", "recovered"));
-  card.appendChild(meta);
-  if (book.palette && book.palette.length) card.appendChild(swatchStrip(book.palette));
+  body.appendChild(meta);
+  card.appendChild(body);
   const actions = el("div", "card-actions");
   actions.appendChild(
     button("Open", "btn btn-small", () => {

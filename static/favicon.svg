@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="loreforge">
+  <rect width="32" height="32" rx="7" fill="#12151c"/>
+  <path d="M4 13.6 L9 11.5 L26.5 11.5 L26.5 14 Q26.5 16.5 24 16.5 L19 16.5 L19 20.5 L22 20.5 L24.5 24.5 L7.5 24.5 L10 20.5 L13 20.5 L13 16.5 L8.5 16.5 Z" fill="#e8a04c"/>
+  <path d="M22.6 4 L24 7.2 L27.2 8.6 L24 10 L22.6 13.2 L21.2 10 L18 8.6 L21.2 7.2 Z" fill="#f7bb70"/>
+</svg>

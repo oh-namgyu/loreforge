@@ -129,14 +129,15 @@
     lines.forEach((entry, index) => {
       const item = el("div", "line-item");
       item.dataset.line = String(index);
-      item.appendChild(
-        fieldRow("lines." + index + ".situation", "situation", entry.situation || "", false,
-          (value) => patchAt(lines, index, "lines", { situation: value }))
-      );
-      item.appendChild(
-        fieldRow("lines." + index + ".line", "line", entry.line || "", true,
-          (value) => patchAt(lines, index, "lines", { line: value }))
-      );
+      const situation = fieldRow("lines." + index + ".situation", "situation",
+        entry.situation || "", false,
+        (value) => patchAt(lines, index, "lines", { situation: value }));
+      situation.classList.add("field-row-pill");
+      item.appendChild(situation);
+      const spoken = fieldRow("lines." + index + ".line", "line", entry.line || "", true,
+        (value) => patchAt(lines, index, "lines", { line: value }));
+      spoken.classList.add("field-row-quote");
+      item.appendChild(spoken);
       const remove = button("Remove", "btn btn-small btn-danger", () =>
         patch({ lines: lines.filter((_, position) => position !== index) })
       );
@@ -156,14 +157,14 @@
 
   function paletteSection(bible) {
     const palette = Array.isArray(bible.palette) ? bible.palette : [];
-    const box = el("div", "stack");
+    const box = el("div", "palette-grid");
     palette.forEach((color, index) => {
       const row = el("div", "swatch-row");
       row.dataset.swatch = String(index);
-      const head = el("div", "swatch-head");
-      head.appendChild(LF.paintSwatch(el("span", "swatch swatch-lg"), color.hex));
-      head.appendChild(el("code", "swatch-hex", color.hex || "—"));
-      row.appendChild(head);
+      const tile = LF.paintSwatch(el("div", "swatch swatch-tile"), color.hex);
+      tile.classList.add(LF.inkClass(color.hex));
+      tile.appendChild(el("code", "swatch-hex", color.hex || "—"));
+      row.appendChild(tile);
       row.appendChild(
         fieldRow("palette." + index + ".name", "name", color.name || "", false,
           (value) => patchAt(palette, index, "palette", { name: value }))
@@ -183,10 +184,11 @@
   function promptSection(bible) {
     const box = el("div", "stack");
     const prompt = bible.master_prompt || "";
+    const panel = el("div", "codepanel");
     const pre = el("pre", "code", prompt);
     pre.id = "master-prompt";
-    box.appendChild(pre);
-    const copy = button("Copy", "btn btn-small", async () => {
+    panel.appendChild(pre);
+    const copy = button("Copy", "btn btn-small copy-btn", async () => {
       try {
         await navigator.clipboard.writeText(prompt);
         copy.textContent = "Copied";
@@ -195,7 +197,8 @@
       }
     });
     copy.id = "copy-prompt";
-    box.appendChild(copy);
+    panel.appendChild(copy);
+    box.appendChild(panel);
     box.appendChild(textRow(bible, "master_prompt", "edit prompt"));
     return box;
   }
@@ -212,10 +215,11 @@
   ];
 
   // -- rendering -----------------------------------------------------------
-  function sectionPanel(spec, bible) {
+  function sectionPanel(spec, bible, index) {
     const panel = el("section", "panel");
     panel.id = "section-" + spec.id;
     const head = el("div", "panel-head");
+    head.appendChild(el("span", "panel-num", String(index + 1)));
     head.appendChild(el("h3", "panel-title", spec.title));
     panel.appendChild(head);
     panel.appendChild(spec.build(bible));
@@ -227,24 +231,29 @@
     const bible = book.bible && typeof book.bible === "object" ? book.bible : null;
     titleNode.textContent = (bible && bible.name) || "(untitled)";
     statusNode.textContent = book.status || "empty";
+    statusNode.className = LF.statusClass(book.status);
     setGenerateLabel();
     LF.gallerySync(book);
     navNode.replaceChildren();
     sectionsNode.replaceChildren();
+    LF.sectionSpy([]);
     if (!bible) {
       const panel = el("section", "panel");
-      panel.appendChild(el("p", "empty", "No bible yet. Use Generate to draft one."));
+      panel.appendChild(el("p", "empty", "No bible yet — press Generate to draft one."));
       panel.appendChild(el("p", "card-text", book.concept || ""));
       sectionsNode.appendChild(panel);
       return;
     }
-    SECTIONS.forEach((spec) => {
-      const target = sectionPanel(spec, bible);
-      sectionsNode.appendChild(target);
-      navNode.appendChild(
-        button(spec.title, "navlink", () => target.scrollIntoView({ behavior: "smooth" }))
+    const pairs = SECTIONS.map((spec, index) => {
+      const panel = sectionPanel(spec, bible, index);
+      sectionsNode.appendChild(panel);
+      const link = button(spec.title, "navlink", () =>
+        panel.scrollIntoView({ behavior: "smooth", block: "start" })
       );
+      navNode.appendChild(link);
+      return { panel: panel, link: link };
     });
+    LF.sectionSpy(pairs);
   }
 
   function setGenerateLabel() {

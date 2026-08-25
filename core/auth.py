@@ -30,21 +30,25 @@ LOGIN_PAGE = """<!doctype html>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>loreforge — sign in</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header class="topbar">
-    <h1 class="brand">loreforge</h1>
-    <span class="tagline">character &amp; world bible studio</span>
+    <h1 class="brand"><a class="brand-link" href="/">lore<span class="brand-em">forge</span></a></h1>
+    <p class="tagline">character &amp; world bible studio</p>
   </header>
-  <main class="wrap">
-    <section class="panel">
+  <main class="wrap wrap-narrow">
+    <section class="panel panel-forge">
       <div class="panel-head"><h2 class="panel-title">Sign in</h2></div>
       <form method="post" action="/login">
-        <p class="card-text">Enter the access token this instance was started with.</p>
-        <input class="input" type="password" name="token" autocomplete="current-password"
-               autofocus placeholder="access token">
-        <button class="btn btn-primary" type="submit">Sign in</button>
+        <label class="label" for="token">Access token</label>
+        <input class="input input-hero" id="token" type="password" name="token"
+               autocomplete="current-password" autofocus placeholder="access token">
+        <p class="helper">The token this instance was started with.</p>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Sign in</button>
+        </div>
       </form>
       {message}
     </section>
@@ -115,7 +119,11 @@ def origin_allowed() -> bool:
 
 
 def _login_response(message: str = "", status: int = 200) -> Response:
-    block = f'<p class="badge badge-warn">{message}</p>' if message else ""
+    block = (
+        f'<p class="notice notice-error"><span class="notice-text">{message}</span></p>'
+        if message
+        else ""
+    )
     response = make_response(LOGIN_PAGE.format(message=block), status)
     response.mimetype = "text/html"
     return response
