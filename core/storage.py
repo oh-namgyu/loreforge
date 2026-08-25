@@ -140,7 +140,11 @@ class Storage:
                 continue
             summary = {key: book.get(key) for key in SUMMARY_FIELDS}
             bible = book.get("bible") or {}
-            summary["name"] = bible.get("name") if isinstance(bible, dict) else None
+            if not isinstance(bible, dict):
+                bible = {}
+            # name and palette let the grid show a card without loading full books
+            summary["name"] = bible.get("name")
+            summary["palette"] = bible.get("palette") if isinstance(bible.get("palette"), list) else None
             summary["board_count"] = len(book.get("board") or [])
             if book.get("recovered"):
                 summary["recovered"] = True

@@ -7,6 +7,8 @@
   --muted: #98a0b3;
   --accent: #7c9cff;
   --accent-ink: #0d1020;
+  --warn: #e0b160;
+  --danger: #e08585;
   --radius: 10px;
 }
 
@@ -50,6 +52,7 @@ body {
   border: 1px solid var(--line);
   border-radius: var(--radius);
   padding: 20px;
+  margin-bottom: 18px;
 }
 
 .panel-head {
@@ -86,6 +89,26 @@ body {
   margin: 0 0 10px;
   color: var(--muted);
   font-size: 13px;
+  white-space: pre-wrap;
+}
+
+.card-meta,
+.card-actions,
+.confirm-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.card-actions,
+.confirm-bar {
+  margin-top: 10px;
+}
+
+.confirm-text {
+  color: var(--warn);
+  font-size: 13px;
 }
 
 .badge {
@@ -117,11 +140,27 @@ body {
 
 .btn:hover { border-color: var(--accent); }
 
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn:disabled:hover { border-color: var(--line); }
+
 .btn-primary {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
 }
+
+.btn-small {
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.btn-danger { color: var(--danger); }
+
+.btn-danger:hover { border-color: var(--danger); }
 
 .input {
   display: block;
@@ -136,6 +175,69 @@ body {
 }
 
 .input:focus { border-color: var(--accent); outline: none; }
+
+.label {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.form-note {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.notice-text {
+  flex: 1 1 240px;
+  font-size: 14px;
+}
+
+.notice-info { border-left-color: var(--accent); }
+.notice-warn { border-left-color: var(--warn); }
+.notice-error { border-left-color: var(--danger); }
+
+.swatch-strip {
+  display: flex;
+  gap: 4px;
+  margin: 4px 0 0;
+}
+
+.swatch {
+  display: inline-block;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--bg);
+}
 
 .empty {
   margin: 8px 0 0;

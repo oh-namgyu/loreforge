@@ -146,6 +146,25 @@ def test_delete_moves_to_trash(client, store: Storage) -> None:
     assert len(trashed) == 1 and trashed[0].name.startswith(f"{slug}-")
 
 
+def test_summary_carries_name_and_palette(client, store: Storage) -> None:
+    slug = make_book(client)
+    book = store.load_book(slug)
+    book["bible"] = {"name": "Rin", "palette": [{"hex": "#112233", "name": "ink"}]}
+    book["status"] = "draft"
+    store.save_book(slug, book)
+
+    summary = body(client.get("/api/books"))["data"][0]
+    assert summary["name"] == "Rin"
+    assert summary["palette"] == [{"hex": "#112233", "name": "ink"}]
+    assert summary["status"] == "draft"
+
+
+def test_summary_without_bible_has_empty_hints(client) -> None:
+    make_book(client)
+    summary = body(client.get("/api/books"))["data"][0]
+    assert summary["name"] is None and summary["palette"] is None
+
+
 def test_dedupe_slugs_via_api(client) -> None:
     assert make_book(client, "Same Name") == "same-name"
     assert make_book(client, "Same Name") == "same-name-2"
