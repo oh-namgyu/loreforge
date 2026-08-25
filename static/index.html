@@ -68,10 +68,19 @@
         <span class="badge" id="detail-status">empty</span>
         <span class="spacer"></span>
         <button class="btn btn-primary" type="button" id="detail-generate">Generate</button>
-        <button class="btn" type="button" id="detail-render" disabled
-                title="Board rendering arrives in a later stage">Render Board <span class="badge">soon</span></button>
+        <button class="btn" type="button" id="detail-render" disabled>Render Board</button>
         <button class="btn" type="button" id="detail-export" disabled
                 title="Standalone HTML export arrives in a later stage">Export <span class="badge">soon</span></button>
+      </div>
+      <div class="actionbar">
+        <span class="field-label">Render</span>
+        <label class="check" for="kind-board">
+          <input type="checkbox" id="kind-board" checked> board
+        </label>
+        <label class="check" for="kind-solo">
+          <input type="checkbox" id="kind-solo"> solo
+        </label>
+        <span class="form-note" id="render-cost">Uses your image-API credits (&asymp;1 call per image)</span>
       </div>
       <div class="split">
         <nav class="sidenav" id="detail-nav"></nav>
@@ -81,6 +90,7 @@
   </main>
 
   <script src="/static/app.js"></script>
+  <script src="/static/gallery.js"></script>
   <script src="/static/detail.js"></script>
 </body>
 </html>

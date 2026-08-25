@@ -5,6 +5,7 @@ import pytest
 
 from app import create_app
 from core.bible import validate_bible
+from core.fake_llm import fake_bible
 from core.storage import Storage
 
 
@@ -118,24 +119,64 @@ def test_unknown_api_route_and_method(client) -> None:
     assert res.status_code == 405 and body(res)["ok"] is False
 
 
+def seed_bible(store: Storage, slug: str) -> dict:
+    book = store.load_book(slug)
+    book["bible"] = fake_bible("Rin")
+    book["status"] = "draft"
+    store.save_book(slug, book)
+    return book["bible"]
+
+
 def test_patch_bible_conflict_then_merge(client, store: Storage) -> None:
     slug = make_book(client)
     res = client.patch(f"/api/books/{slug}/bible", json={"name": "Rin"})
     assert res.status_code == 409 and body(res)["ok"] is False
 
-    book = store.load_book(slug)
-    book["bible"] = {"name": "Rin", "world": "old", "lines": []}
-    book["status"] = "draft"
-    store.save_book(slug, book)
-
+    seeded = seed_bible(store, slug)
     res = client.patch(f"/api/books/{slug}/bible", json={"world": "new"})
     assert res.status_code == 200
     bible = body(res)["data"]["bible"]
-    assert bible == {"name": "Rin", "world": "new", "lines": []}
+    assert bible == {**seeded, "world": "new"}
     assert store.load_book(slug)["bible"]["world"] == "new"
 
     assert client.patch(f"/api/books/{slug}/bible", json={}).status_code == 400
     assert client.patch("/api/books/ghost/bible", json={"a": 1}).status_code == 404
+
+
+# A patch that merges into an invalid bible is refused whole: the endpoint runs
+# the same schema check generation runs, so hand edits cannot break the file.
+@pytest.mark.parametrize(
+    "patch,violation",
+    [
+        ({"world": ""}, "world"),
+        ({"name": 12}, "name"),
+        ({"lines": []}, "lines"),
+        ({"palette": [{"hex": "red", "name": "red"}] * 4}, "palette[0].hex"),
+        ({"profile": {"age": "9"}}, "profile.role"),
+        ({"voice": {"personality": "wry"}}, "voice.speech"),
+    ],
+)
+def test_patch_bible_rejects_schema_breaking_merge(
+    client, store: Storage, patch: dict, violation: str
+) -> None:
+    slug = make_book(client)
+    seeded = seed_bible(store, slug)
+
+    res = client.patch(f"/api/books/{slug}/bible", json=patch)
+    assert res.status_code == 400
+    assert violation in body(res)["error"]
+    assert store.load_book(slug)["bible"] == seeded
+
+
+def test_patch_bible_accepts_a_valid_edit(client, store: Storage) -> None:
+    slug = make_book(client)
+    seeded = seed_bible(store, slug)
+    lines = seeded["lines"] + [{"situation": "at dawn", "line": "again, then"}]
+
+    res = client.patch(f"/api/books/{slug}/bible", json={"lines": lines})
+    assert res.status_code == 200
+    assert len(body(res)["data"]["bible"]["lines"]) == 6
+    validate_bible(store.load_book(slug)["bible"])
 
 
 def test_delete_moves_to_trash(client, store: Storage) -> None:

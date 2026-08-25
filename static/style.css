@@ -126,6 +126,11 @@ body {
   color: #e0b160;
 }
 
+.badge-shot {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .btn {
   display: inline-block;
   padding: 7px 14px;
@@ -390,6 +395,65 @@ body {
   font-size: 13px;
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.shot {
+  margin: 0;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.shot-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.shot-cap {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 13px;
+}
+
+.chip-error {
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
 .empty {

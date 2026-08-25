@@ -1,14 +1,18 @@
-"""Offline text provider used by browser tests (LOREFORGE_FAKE_LLM=1).
+"""Offline providers used by browser tests (LOREFORGE_FAKE_LLM=1).
 
-It makes no network call and needs no API key: it echoes the concept back inside
-a schema-valid bible so an end-to-end run can exercise the whole generate flow —
-including hostile concept text, which must survive as literal characters.
+They make no network call and need no API key. The text fake echoes the concept
+back inside a schema-valid bible so an end-to-end run can exercise the whole
+generate flow — including hostile concept text, which must survive as literal
+characters. The image fake returns a real, tiny PNG so the gallery has something
+a browser will actually decode.
 """
 
 from __future__ import annotations
 
 import json
-from typing import Any, Dict, List
+import struct
+import zlib
+from typing import Any, Dict, List, Tuple
 
 NAME_LIMIT = 60
 PALETTE = [
@@ -18,6 +22,8 @@ PALETTE = [
     {"hex": "#e6e8ef", "name": "paper"},
 ]
 SITUATIONS = ("greeting", "under pressure", "at rest", "in a fight", "farewell")
+FAKE_PNG_SIZE = 64
+FAKE_PNG_COLOR = (47, 58, 79)
 
 
 def concept_of(user: str) -> str:
@@ -54,8 +60,32 @@ def fake_bible(concept: str) -> Dict[str, Any]:
     }
 
 
+def _chunk(tag: bytes, data: bytes) -> bytes:
+    crc = zlib.crc32(tag + data) & 0xFFFFFFFF
+    return struct.pack(">I", len(data)) + tag + data + struct.pack(">I", crc)
+
+
+def fake_png(size: int = FAKE_PNG_SIZE, color: Tuple[int, int, int] = FAKE_PNG_COLOR) -> bytes:
+    """A deterministic solid-colour truecolour PNG, built with the stdlib alone."""
+    header = struct.pack(">IIBBBBB", size, size, 8, 2, 0, 0, 0)
+    scanline = b"\x00" + bytes(color) * size
+    return (
+        b"\x89PNG\r\n\x1a\n"
+        + _chunk(b"IHDR", header)
+        + _chunk(b"IDAT", zlib.compress(scanline * size, 9))
+        + _chunk(b"IEND", b"")
+    )
+
+
 class FakeText:
     """Same interface as core.llm.AnthropicText, without the provider."""
 
     def generate(self, system: str, user: str) -> str:
         return json.dumps(fake_bible(concept_of(user)), ensure_ascii=False)
+
+
+class FakeImage:
+    """Same interface as core.providers.openai_image.OpenAIImage, without the provider."""
+
+    def render(self, prompt: str, size: str = "") -> bytes:
+        return fake_png()

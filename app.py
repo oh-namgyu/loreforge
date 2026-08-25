@@ -11,6 +11,7 @@ from flask import Flask, Response, send_from_directory
 from core import auth
 from core.api import api_bp, register_errors
 from core.llm import AnthropicText
+from core.providers.openai_image import OpenAIImage
 from core.storage import Storage
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -43,16 +44,27 @@ def default_llm() -> object:
     return AnthropicText()
 
 
+def default_image() -> object:
+    """Image provider. The same LOREFORGE_FAKE_LLM=1 flag swaps in the offline fake."""
+    if os.environ.get("LOREFORGE_FAKE_LLM") == "1":
+        from core.fake_llm import FakeImage
+
+        return FakeImage()
+    return OpenAIImage()
+
+
 def create_app(
     data_dir: Optional[str | os.PathLike[str]] = None,
     llm: Optional[object] = None,
     token: Optional[str] = None,
+    image: Optional[object] = None,
 ) -> Flask:
     app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="/static")
     storage = Storage(resolve_data_dir(data_dir))
     storage.purge_trash(days=int(os.environ.get("LOREFORGE_TRASH_DAYS", "7")))
     app.config["STORAGE"] = storage
     app.config["LLM"] = llm if llm is not None else default_llm()
+    app.config["IMAGE"] = image if image is not None else default_image()
     app.register_blueprint(api_bp)
     register_errors(app)
     auth.install(app, token if token is not None else os.environ.get("AUTH_TOKEN"))

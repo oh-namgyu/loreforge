@@ -11,7 +11,7 @@ import time
 import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 SCHEMA_VERSION = 1
 SLUG_RE = re.compile(r"^[a-z0-9-]{1,64}$")
@@ -210,19 +210,37 @@ class Storage:
             self._write_book(slug, book)
         return book
 
-    def update_bible(self, slug: str, patch: Dict[str, Any]) -> Dict[str, Any]:
-        if not isinstance(patch, dict):
-            raise ValueError("patch must be an object")
+    def mutate_book(self, slug: str, change: Callable[[Dict[str, Any]], None]) -> Dict[str, Any]:
+        """Load, apply `change`, write — all under the book lock. `change` may raise."""
         with self._lock(slug):
             book = self.load_book(slug)
-            bible = book.get("bible")
-            if not isinstance(bible, dict):
-                raise BibleMissing(slug)
-            bible.update(patch)
-            book["bible"] = bible
+            change(book)
             book["updated"] = utcnow()
             self._write_book(slug, book)
             return book
+
+    def update_bible(
+        self,
+        slug: str,
+        patch: Dict[str, Any],
+        validate: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ) -> Dict[str, Any]:
+        """Merge one patch into the bible. `validate` sees the merged result and
+        may reject it, in which case nothing is written."""
+        if not isinstance(patch, dict):
+            raise ValueError("patch must be an object")
+
+        def change(book: Dict[str, Any]) -> None:
+            bible = book.get("bible")
+            if not isinstance(bible, dict):
+                raise BibleMissing(slug)
+            merged = dict(bible)
+            merged.update(patch)
+            if validate is not None:
+                validate(merged)
+            book["bible"] = merged
+
+        return self.mutate_book(slug, change)
 
     # -- delete ----------------------------------------------------------
     def delete_book(self, slug: str) -> str:

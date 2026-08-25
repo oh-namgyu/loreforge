@@ -8,14 +8,16 @@ from playwright.sync_api import Page, expect
 pytestmark = pytest.mark.e2e
 
 CONCEPT = "Wandering tea merchant of the salt roads"
+RENDER_CONCEPT = "Lamplighter of the drowned quarter"
 XSS_CONCEPT = "<script>alert(1)</script> probe"
 EDITED = "Rewritten by hand: the merchant never left the coast."
-SECTIONS = ("profile", "background", "voice", "lines", "palette", "world", "prompt")
+SECTIONS = ("profile", "background", "voice", "lines", "palette", "world", "prompt", "gallery")
 
 
-# The app ships CSP `default-src 'self'`, which forbids eval in the page. That
-# rules out page.wait_for_function / page.evaluate with a JS string, so every
-# wait and assertion below goes through locators.
+# The app ships CSP `default-src 'self'`, which forbids eval inside the page, so
+# every wait and assertion below goes through locators rather than page scripts.
+# Playwright's own evaluate runs in an isolated world and is not affected by it —
+# it is used once, to read naturalWidth off a decoded image.
 def home(page: Page, server: str) -> None:
     page.goto(server + "/#/")
     expect(page.locator("#view-home")).to_be_visible()
@@ -58,7 +60,8 @@ def test_full_book_round_trip(page: Page, server: str) -> None:
     expect(page.locator("#section-lines .line-item")).to_have_count(5)
     expect(page.locator("#master-prompt")).to_contain_text(CONCEPT)
     expect(page.locator("#copy-prompt")).to_be_visible()
-    expect(page.locator("#detail-render")).to_be_disabled()
+    expect(page.locator("#detail-render")).to_be_enabled()
+    expect(page.locator("#gallery .shot")).to_have_count(0)
     expect(page.locator("#detail-export")).to_be_disabled()
 
     edit_field(page, "background", EDITED)
@@ -74,6 +77,25 @@ def test_full_book_round_trip(page: Page, server: str) -> None:
     expect(page.locator(".card")).to_have_count(0)
     expect(page.locator("#book-empty")).to_be_visible()
     expect(page.locator("#book-count")).to_have_text("0")
+
+
+def test_render_board_shows_a_real_image(page: Page, server: str) -> None:
+    """The offline image fake returns a real PNG, so the browser must decode it."""
+    create_book(page, server, RENDER_CONCEPT)
+    expect(page.locator("#render-cost")).to_contain_text("image-API credits")
+
+    page.click("#detail-render")
+    expect(page.locator("#detail-status")).to_have_text("rendered")
+    shot = page.locator('#gallery .shot[data-kind="board"] .shot-img')
+    expect(shot).to_be_visible()
+    expect(page.locator("#render-errors .chip")).to_have_count(0)
+    assert shot.evaluate("node => node.naturalWidth") > 0
+    assert "/image/board?t=" in (shot.get_attribute("src") or "")
+
+    home(page, server)
+    expect(page.locator(".card .badge-shot")).to_have_text("🖼 1")
+    delete_first_card(page)
+    expect(page.locator(".card")).to_have_count(0)
 
 
 def test_hostile_text_stays_literal(page: Page, server: str) -> None:

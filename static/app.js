@@ -136,6 +136,7 @@ function bookCard(book) {
   card.appendChild(el("p", "card-text", snippet(book.concept)));
   const meta = el("div", "card-meta");
   meta.appendChild(el("span", "badge", book.status || "empty"));
+  if (book.board_count) meta.appendChild(el("span", "badge badge-shot", "🖼 " + book.board_count));
   if (book.recovered) meta.appendChild(el("span", "badge badge-warn", "recovered"));
   card.appendChild(meta);
   if (book.palette && book.palette.length) card.appendChild(swatchStrip(book.palette));

@@ -2,8 +2,10 @@
 
 /* Book detail: bible sections plus inline editing.
    Saving sends one top-level bible key to PATCH /api/books/<slug>/bible, which
-   merges it as-is: the endpoint does not re-run the generation schema check, so
-   the 5-8 lines bound and the #RRGGBB shape are enforced here before sending. */
+   validates the merged bible against the generation schema and refuses the whole
+   patch on any violation. The same bounds (5-8 lines, #RRGGBB) are enforced here
+   too, so an obvious mistake is caught before the round trip.
+   The gallery section and the render controls live in gallery.js. */
 
 (function (LF) {
   const el = LF.el;
@@ -206,6 +208,7 @@
     { id: "palette", title: "Palette", build: paletteSection },
     { id: "world", title: "World", build: (b) => textRow(b, "world", "World") },
     { id: "prompt", title: "Master Prompt", build: promptSection },
+    { id: "gallery", title: "Board", build: () => LF.gallerySection() },
   ];
 
   // -- rendering -----------------------------------------------------------
@@ -225,6 +228,7 @@
     titleNode.textContent = (bible && bible.name) || "(untitled)";
     statusNode.textContent = book.status || "empty";
     setGenerateLabel();
+    LF.gallerySync(book);
     navNode.replaceChildren();
     sectionsNode.replaceChildren();
     if (!bible) {
@@ -262,6 +266,13 @@
     }
   });
 
+  // gallery.js reads the open book through this seam and repaints it after a render
+  LF.detail = {
+    slug: () => state.slug,
+    book: () => state.book,
+    show: render,
+  };
+
   LF.openDetail = async function (slug) {
     state.slug = slug;
     state.book = null;
@@ -269,6 +280,7 @@
     try {
       render(await LF.request("GET", "/api/books/" + slug));
     } catch (err) {
+      LF.gallerySync(null);
       navNode.replaceChildren();
       sectionsNode.replaceChildren();
       const panel = el("section", "panel");

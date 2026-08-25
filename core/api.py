@@ -2,16 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Union
 
-from flask import Blueprint, Response, current_app, jsonify, request
+from flask import Blueprint, Response, current_app, jsonify, request, send_file
 
-from .bible import BibleParseError, generate_bible
+from .bible import BibleParseError, generate_bible, validate_bible
+from .images import image_path
 from .llm import LLMError, LLMNotConfigured
+from .providers import NoProvider
+from .render import normalise_kinds, render_book
 from .storage import BibleMissing, BookNotFound, Storage, StorageError
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
 RAW_PREVIEW = 500
+# a handler either returns the JSON envelope with its status, or a raw file/document
+Reply = Union[Response, Tuple[Response, int]]
 
 
 def ok(data: Any, status: int = 200) -> Tuple[Response, int]:
@@ -30,6 +35,13 @@ def store() -> Storage:
 
 def llm() -> Any:
     return current_app.config["LLM"]
+
+
+def image() -> Any:
+    provider = current_app.config.get("IMAGE")
+    if provider is None:
+        raise NoProvider("no image provider configured")
+    return provider
 
 
 def _payload() -> Dict[str, Any]:
@@ -91,10 +103,29 @@ def generate(slug: str) -> Tuple[Response, int]:
 
 @api_bp.patch("/books/<slug>/bible")
 def patch_bible(slug: str) -> Tuple[Response, int]:
+    """The merged bible has to satisfy the generation schema, not just the patch."""
     body = _payload()
     if not body:
         return fail("empty patch", 400)
-    return ok(store().update_bible(slug, body))
+    return ok(store().update_bible(slug, body, validate=validate_bible))
+
+
+@api_bp.post("/books/<slug>/render")
+def render(slug: str) -> Tuple[Response, int]:
+    """Board and/or solo image. Partial success stays ok:true with `failed` set."""
+    kinds = normalise_kinds(_payload().get("kinds"))
+    try:
+        return ok(render_book(store(), image(), slug, kinds))
+    except NoProvider:
+        return fail("no-image-provider", 409)
+
+
+@api_bp.get("/books/<slug>/image/<kind>")
+def get_image(slug: str, kind: str) -> Reply:
+    path = image_path(store().book_dir(slug), kind)
+    if not path.is_file():
+        return fail("image not found", 404)
+    return send_file(path, mimetype="image/png", max_age=0)
 
 
 @api_bp.delete("/books/<slug>")
