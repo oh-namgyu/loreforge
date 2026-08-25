@@ -7,7 +7,7 @@ import pytest
 from app import create_app
 from core import auth
 
-TOKEN = "s3cret-token"
+TOKEN = "test-dummy-auth-token"  # not a real credential; fixture value only
 
 
 @pytest.fixture()
