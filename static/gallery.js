@@ -1,6 +1,6 @@
 "use strict";
 
-/* Board rendering: the actionbar controls and the gallery section.
+/* Board rendering and export: the actionbar controls and the gallery section.
    Images come from /api/books/<slug>/image/<kind>; the rendered_at stamp rides
    along as a cache buster so a re-render replaces the picture in place.
    Failures are kept here so the section can repaint them after a re-render. */
@@ -14,6 +14,7 @@
     "Generating, editing and export keep working without it.";
 
   const renderBtn = document.getElementById("detail-render");
+  const exportBtn = document.getElementById("detail-export");
   const boardBox = document.getElementById("kind-board");
   const soloBox = document.getElementById("kind-solo");
 
@@ -87,7 +88,9 @@
       failures = [];
       shownFor = slug;
     }
-    renderBtn.disabled = !(book && book.bible);
+    const ready = Boolean(book && book.bible);
+    renderBtn.disabled = !ready;
+    exportBtn.disabled = !ready;
   };
 
   LF.gallerySection = function () {
@@ -110,4 +113,10 @@
   };
 
   renderBtn.addEventListener("click", () => run(selectedKinds()));
+
+  // the endpoint answers with Content-Disposition: attachment, so the new tab
+  // hands the file straight to the browser's downloader
+  exportBtn.addEventListener("click", () => {
+    window.open("/api/books/" + LF.detail.slug() + "/export", "_blank", "noopener");
+  });
 })(window.LF);

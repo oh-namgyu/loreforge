@@ -7,7 +7,8 @@ from typing import Any, Dict, Tuple, Union
 from flask import Blueprint, Response, current_app, jsonify, request, send_file
 
 from .bible import BibleParseError, generate_bible, validate_bible
-from .images import image_path
+from .export import render_export
+from .images import image_path, read_images
 from .llm import LLMError, LLMNotConfigured
 from .providers import NoProvider
 from .render import normalise_kinds, render_book
@@ -118,6 +119,18 @@ def render(slug: str) -> Tuple[Response, int]:
         return ok(render_book(store(), image(), slug, kinds))
     except NoProvider:
         return fail("no-image-provider", 409)
+
+
+@api_bp.get("/books/<slug>/export")
+def export(slug: str) -> Reply:
+    """One self-contained HTML file, offered as a download."""
+    book = store().load_book(slug)
+    if not isinstance(book.get("bible"), dict):
+        raise BibleMissing(slug)
+    document = render_export(book, read_images(store().book_dir(slug)))
+    response = current_app.response_class(document, mimetype="text/html")
+    response.headers["Content-Disposition"] = f'attachment; filename="{slug}-lorebook.html"'
+    return response
 
 
 @api_bp.get("/books/<slug>/image/<kind>")

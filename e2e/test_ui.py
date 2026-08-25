@@ -42,6 +42,10 @@ def edit_field(page: Page, field: str, text: str) -> None:
     row.get_by_role("button", name="Save").click()
 
 
+def slug_of(page: Page) -> str:
+    return page.url.rsplit("#/book/", 1)[-1]
+
+
 def delete_first_card(page: Page) -> None:
     page.locator(".card-actions").first.get_by_role("button", name="Delete").click()
     page.locator(".confirm-bar").first.get_by_role("button", name="Delete").click()
@@ -62,7 +66,7 @@ def test_full_book_round_trip(page: Page, server: str) -> None:
     expect(page.locator("#copy-prompt")).to_be_visible()
     expect(page.locator("#detail-render")).to_be_enabled()
     expect(page.locator("#gallery .shot")).to_have_count(0)
-    expect(page.locator("#detail-export")).to_be_disabled()
+    expect(page.locator("#detail-export")).to_be_enabled()
 
     edit_field(page, "background", EDITED)
     expect(field_value(page, "background")).to_have_text(EDITED)
@@ -91,6 +95,15 @@ def test_render_board_shows_a_real_image(page: Page, server: str) -> None:
     expect(page.locator("#render-errors .chip")).to_have_count(0)
     assert shot.evaluate("node => node.naturalWidth") > 0
     assert "/image/board?t=" in (shot.get_attribute("src") or "")
+
+    # the export of a rendered book carries the image inline and stays offline
+    export = page.request.get(server + "/api/books/" + slug_of(page) + "/export")
+    assert export.status == 200
+    assert "attachment; filename=" in export.headers["content-disposition"]
+    document = export.text()
+    assert RENDER_CONCEPT in document
+    assert "data:image/png;base64," in document
+    assert "http://" not in document and "https://" not in document
 
     home(page, server)
     expect(page.locator(".card .badge-shot")).to_have_text("🖼 1")
