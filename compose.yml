@@ -1,0 +1,23 @@
+services:
+  loreforge:
+    build: .
+    image: loreforge:latest
+    # Host side stays on loopback. The container binds 0.0.0.0 inside its own
+    # network namespace; this mapping is what decides who can reach it.
+    ports:
+      - "127.0.0.1:6180:6180"
+    environment:
+      # Required: the container binds 0.0.0.0, and the bind guard refuses that
+      # without a token. Put AUTH_TOKEN in a .env file next to this compose file.
+      - AUTH_TOKEN=${AUTH_TOKEN:?set AUTH_TOKEN — the container binds 0.0.0.0 and refuses to start without it}
+      # Required for bible generation.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      # Optional; without it the app runs text-only and /render returns 409.
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - LOREFORGE_MODEL=${LOREFORGE_MODEL:-}
+      - LOREFORGE_IMAGE_MODEL=${LOREFORGE_IMAGE_MODEL:-}
+    # The container runs as uid 10001. Make the host directory writable by it:
+    #   mkdir -p data && sudo chown 10001:10001 data
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
