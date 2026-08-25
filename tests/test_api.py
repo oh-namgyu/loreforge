@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from app import create_app
+from core.bible import validate_bible
 from core.storage import Storage
 
 
@@ -163,6 +164,30 @@ def test_summary_without_bible_has_empty_hints(client) -> None:
     make_book(client)
     summary = body(client.get("/api/books"))["data"][0]
     assert summary["name"] is None and summary["palette"] is None
+
+
+def test_fake_llm_hook_is_opt_in(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from core.fake_llm import FakeText
+    from core.llm import AnthropicText
+
+    monkeypatch.setenv("LOREFORGE_DATA", str(tmp_path / "data"))
+    assert isinstance(create_app().config["LLM"], AnthropicText)
+    monkeypatch.setenv("LOREFORGE_FAKE_LLM", "1")
+    assert isinstance(create_app().config["LLM"], FakeText)
+
+
+def test_fake_llm_generates_a_valid_bible(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("LOREFORGE_DATA", str(tmp_path / "data"))
+    monkeypatch.setenv("LOREFORGE_FAKE_LLM", "1")
+    client = create_app().test_client()
+    slug = make_book(client, "Salt road courier")
+
+    res = client.post(f"/api/books/{slug}/generate")
+    assert res.status_code == 200
+    book = body(res)["data"]
+    assert book["status"] == "draft"
+    assert book["bible"]["name"] == "Salt road courier"
+    validate_bible(book["bible"])
 
 
 def test_dedupe_slugs_via_api(client) -> None:

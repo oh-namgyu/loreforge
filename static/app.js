@@ -1,15 +1,23 @@
 "use strict";
 
-/* Home view: book grid, new-book form, generate flow.
+/* Shell: shared helpers, hash router, home view.
+   The book detail view lives in detail.js and attaches itself to window.LF.
    Every string that comes from the server is injected with textContent only. */
 
+const LF = (window.LF = {});
+
 const HEX_RE = /^#[0-9a-fA-F]{6}$/;
+const BOOK_ROUTE = /^#\/book\/([a-z0-9-]{1,64})$/;
 const NO_KEY_MESSAGE =
   "Set ANTHROPIC_API_KEY on the server to generate bibles. " +
-  "The book was saved — browsing and editing keep working without a key.";
+  "The book is saved — browsing and editing keep working without a key.";
 const SNIPPET = 140;
 
 const noticeBar = document.getElementById("notice");
+const views = {
+  home: document.getElementById("view-home"),
+  detail: document.getElementById("view-detail"),
+};
 const grid = document.getElementById("book-grid");
 const emptyNote = document.getElementById("book-empty");
 const countBadge = document.getElementById("book-count");
@@ -81,6 +89,19 @@ function snippet(text) {
   return value.length > SNIPPET ? value.slice(0, SNIPPET) + "…" : value;
 }
 
+Object.assign(LF, {
+  HEX_RE: HEX_RE,
+  NO_KEY_MESSAGE: NO_KEY_MESSAGE,
+  request: request,
+  el: el,
+  button: button,
+  paintSwatch: paintSwatch,
+  showNotice: showNotice,
+  clearNotice: clearNotice,
+  generate: (slug) => request("POST", "/api/books/" + slug + "/generate"),
+});
+
+// -- home ------------------------------------------------------------------
 function askDelete(card, actions, slug) {
   actions.classList.add("hidden");
   const bar = el("div", "confirm-bar");
@@ -107,7 +128,11 @@ function askDelete(card, actions, slug) {
 function bookCard(book) {
   const card = el("article", "card");
   card.dataset.slug = book.slug;
-  card.appendChild(el("h3", "card-title", book.name || "(untitled)"));
+  const title = el("h3", "card-title");
+  const link = el("a", "link", book.name || "(untitled)");
+  link.href = "#/book/" + book.slug;
+  title.appendChild(link);
+  card.appendChild(title);
   card.appendChild(el("p", "card-text", snippet(book.concept)));
   const meta = el("div", "card-meta");
   meta.appendChild(el("span", "badge", book.status || "empty"));
@@ -115,11 +140,11 @@ function bookCard(book) {
   card.appendChild(meta);
   if (book.palette && book.palette.length) card.appendChild(swatchStrip(book.palette));
   const actions = el("div", "card-actions");
-  if (book.status === "empty") {
-    actions.appendChild(
-      button("Generate", "btn btn-small", () => generateBook(book.slug))
-    );
-  }
+  actions.appendChild(
+    button("Open", "btn btn-small", () => {
+      location.hash = "#/book/" + book.slug;
+    })
+  );
   actions.appendChild(
     button("Delete", "btn btn-small btn-danger", () => askDelete(card, actions, book.slug))
   );
@@ -151,17 +176,20 @@ function setBusy(busy, label) {
 
 /* Generation is a second call after creation: a failed generate leaves the
    saved book in place, so the user can retry without retyping the concept. */
-async function generateBook(slug) {
+async function generateThenOpen(slug) {
   setBusy(true, "Generating…");
   try {
-    await request("POST", "/api/books/" + slug + "/generate");
+    await LF.generate(slug);
     clearNotice();
+    location.hash = "#/book/" + slug;
   } catch (err) {
-    if (err.status === 503) showNotice(NO_KEY_MESSAGE, "warn");
-    else showNotice("Generation failed: " + err.message, "error", "Retry", () => generateBook(slug));
+    if (err.status === 503) showNotice(NO_KEY_MESSAGE, "warn", "Open book", () => {
+      location.hash = "#/book/" + slug;
+    });
+    else showNotice("Generation failed: " + err.message, "error", "Retry", () => generateThenOpen(slug));
+    await loadBooks();
   } finally {
     setBusy(false);
-    await loadBooks();
   }
 }
 
@@ -183,7 +211,25 @@ form.addEventListener("submit", async (event) => {
     setBusy(false);
     return;
   }
-  await generateBook(created.slug);
+  await generateThenOpen(created.slug);
 });
 
-loadBooks();
+// -- routing ---------------------------------------------------------------
+function showView(name) {
+  Object.keys(views).forEach((key) => views[key].classList.toggle("hidden", key !== name));
+}
+
+function route() {
+  const match = BOOK_ROUTE.exec(location.hash || "#/");
+  if (match) {
+    showView("detail");
+    LF.openDetail(match[1]);
+    return;
+  }
+  showView("home");
+  loadBooks();
+}
+
+window.addEventListener("hashchange", route);
+// fires after detail.js has registered LF.openDetail (both scripts are classic)
+window.addEventListener("DOMContentLoaded", route);

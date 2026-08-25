@@ -15,6 +15,7 @@
   <main class="wrap">
     <div class="notice hidden" id="notice"></div>
 
+    <div id="view-home">
     <section class="panel">
       <div class="panel-head">
         <h2 class="panel-title">New Book</h2>
@@ -58,8 +59,28 @@
       <div class="grid" id="book-grid"></div>
       <p class="empty" id="book-empty">No books yet.</p>
     </section>
+    </div>
+
+    <div class="hidden" id="view-detail">
+      <div class="actionbar">
+        <a class="btn" href="#/" id="detail-back-link">&larr; Books</a>
+        <h2 class="detail-title" id="detail-title"></h2>
+        <span class="badge" id="detail-status">empty</span>
+        <span class="spacer"></span>
+        <button class="btn btn-primary" type="button" id="detail-generate">Generate</button>
+        <button class="btn" type="button" id="detail-render" disabled
+                title="Board rendering arrives in a later stage">Render Board <span class="badge">soon</span></button>
+        <button class="btn" type="button" id="detail-export" disabled
+                title="Standalone HTML export arrives in a later stage">Export <span class="badge">soon</span></button>
+      </div>
+      <div class="split">
+        <nav class="sidenav" id="detail-nav"></nav>
+        <div class="sections" id="detail-sections"></div>
+      </div>
+    </div>
   </main>
 
   <script src="/static/app.js"></script>
+  <script src="/static/detail.js"></script>
 </body>
 </html>

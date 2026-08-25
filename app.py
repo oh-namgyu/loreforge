@@ -29,6 +29,20 @@ def resolve_data_dir(data_dir: Optional[str | os.PathLike[str]] = None) -> Path:
     return BASE_DIR / "data"
 
 
+def default_llm() -> object:
+    """Text provider for a normally started app.
+
+    LOREFORGE_FAKE_LLM=1 swaps in the offline fake used by the browser tests: it
+    performs no network call and needs no key. The real provider is the default
+    everywhere else, so the flag has to be set deliberately.
+    """
+    if os.environ.get("LOREFORGE_FAKE_LLM") == "1":
+        from core.fake_llm import FakeText
+
+        return FakeText()
+    return AnthropicText()
+
+
 def create_app(
     data_dir: Optional[str | os.PathLike[str]] = None,
     llm: Optional[object] = None,
@@ -38,7 +52,7 @@ def create_app(
     storage = Storage(resolve_data_dir(data_dir))
     storage.purge_trash(days=int(os.environ.get("LOREFORGE_TRASH_DAYS", "7")))
     app.config["STORAGE"] = storage
-    app.config["LLM"] = llm if llm is not None else AnthropicText()
+    app.config["LLM"] = llm if llm is not None else default_llm()
     app.register_blueprint(api_bp)
     register_errors(app)
     auth.install(app, token if token is not None else os.environ.get("AUTH_TOKEN"))
