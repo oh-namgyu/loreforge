@@ -1,0 +1,4 @@
+# Runtime dependencies. Tests need only flask (the anthropic SDK is imported lazily).
+flask>=3.0
+anthropic>=0.40
+# openai is added later, with the optional image provider.

@@ -9,6 +9,7 @@ from typing import Optional
 from flask import Flask, Response, send_from_directory
 
 from core.api import api_bp, register_errors
+from core.llm import AnthropicText
 from core.storage import Storage
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -27,11 +28,14 @@ def resolve_data_dir(data_dir: Optional[str | os.PathLike[str]] = None) -> Path:
     return BASE_DIR / "data"
 
 
-def create_app(data_dir: Optional[str | os.PathLike[str]] = None) -> Flask:
+def create_app(
+    data_dir: Optional[str | os.PathLike[str]] = None, llm: Optional[object] = None
+) -> Flask:
     app = Flask(__name__, static_folder=str(STATIC_DIR), static_url_path="/static")
     storage = Storage(resolve_data_dir(data_dir))
     storage.purge_trash(days=int(os.environ.get("LOREFORGE_TRASH_DAYS", "7")))
     app.config["STORAGE"] = storage
+    app.config["LLM"] = llm if llm is not None else AnthropicText()
     app.register_blueprint(api_bp)
     register_errors(app)
 

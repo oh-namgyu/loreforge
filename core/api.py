@@ -6,21 +6,30 @@ from typing import Any, Dict, Tuple
 
 from flask import Blueprint, Response, current_app, jsonify, request
 
+from .bible import BibleParseError, generate_bible
+from .llm import LLMError, LLMNotConfigured
 from .storage import BibleMissing, BookNotFound, Storage, StorageError
 
 api_bp = Blueprint("api", __name__, url_prefix="/api")
+RAW_PREVIEW = 500
 
 
 def ok(data: Any, status: int = 200) -> Tuple[Response, int]:
     return jsonify({"ok": True, "data": data}), status
 
 
-def fail(message: str, status: int) -> Tuple[Response, int]:
-    return jsonify({"ok": False, "error": message}), status
+def fail(message: str, status: int, **extra: Any) -> Tuple[Response, int]:
+    payload: Dict[str, Any] = {"ok": False, "error": message}
+    payload.update(extra)
+    return jsonify(payload), status
 
 
 def store() -> Storage:
     return current_app.config["STORAGE"]
+
+
+def llm() -> Any:
+    return current_app.config["LLM"]
 
 
 def _payload() -> Dict[str, Any]:
@@ -55,6 +64,29 @@ def create_book() -> Tuple[Response, int]:
 @api_bp.get("/books/<slug>")
 def get_book(slug: str) -> Tuple[Response, int]:
     return ok(store().load_book(slug))
+
+
+@api_bp.post("/books/<slug>/generate")
+def generate(slug: str) -> Tuple[Response, int]:
+    """Concept -> bible. The stored book is untouched unless generation succeeds."""
+    book = store().load_book(slug)
+    try:
+        bible = generate_bible(
+            concept=book.get("concept") or "",
+            style=book.get("style") or "",
+            density=book.get("density") or 6,
+            lang=book.get("lang") or "en",
+            llm=llm(),
+        )
+    except LLMNotConfigured:
+        return fail("llm-not-configured", 503)
+    except LLMError as err:
+        return fail(str(err) or "llm-error", 502, retryable=err.retryable)
+    except BibleParseError as err:
+        return fail("invalid-llm-output", 502, raw_preview=err.raw[:RAW_PREVIEW])
+    book["bible"] = bible
+    book["status"] = "draft"
+    return ok(store().save_book(slug, book))
 
 
 @api_bp.patch("/books/<slug>/bible")
