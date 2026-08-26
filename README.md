@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/oh-namgyu/loreforge/actions/workflows/ci.yml/badge.svg)](https://github.com/oh-namgyu/loreforge/actions/workflows/ci.yml)
 
+> **한글 요약** — 한 줄 컨셉으로 캐릭터·세계관 설정집을 만드는 스튜디오입니다 — LLM이 프로필·성격·대사·컬러 팔레트·영문 마스터 이미지 프롬프트를 생성하고, 선택적으로 비주얼 보드까지 렌더하며, 웹 UI에서 편집하고 단일 HTML로 내보내 공유합니다. *(전체 한국어 문서: [README_KOR.md](README_KOR.md))*
+
 A self-hosted **character & world bible studio**. Type one line about a
 character, and loreforge turns it into a structured lore book — profile,
 background, personality and speech, signature lines, a colour palette, world
